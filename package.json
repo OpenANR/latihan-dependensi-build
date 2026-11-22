@@ -1,0 +1,13 @@
+{
+  "name": "latihan-dependensi-build",
+  "version": "1.0.0",
+  "description": "Latihan Standar Pengelolaan Dependensi dan Build",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --check index.js"
+  },
+  "dependencies": {
+    "express": "4.18.2"
+  }
+}

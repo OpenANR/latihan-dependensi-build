@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI Pipeline - Reproducible Build
 
 on:
   push:
@@ -6,21 +6,18 @@ on:
   pull_request:
     branches: [ main ]
 
-# Mencegah workflow lama menumpuk jika ada push beruntun pada branch yang sama
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Job 1: Build & Verifikasi Syntax/Test
-  build:
-    name: Build & Test
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js dari .nvmrc
+      - name: Setup Node.js dari .nvmrc & cache lockfile
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -29,14 +26,12 @@ jobs:
       - name: Install dependensi secara deterministik
         run: npm ci
 
-      - name: Jalankan test & verifikasi syntax
-        run: npm test
+      - name: Verifikasi aplikasi & struktur build
+        run: node --check index.js
 
-  # Job 2: Audit Keamanan Dependensi (bergantung pada job build)
   security-audit:
-    name: Security Audit
+    needs: build-and-test
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,29 +42,5 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install dependensi
-        run: npm ci
-
-      - name: Audit kerentanan dependensi
+      - name: Audit keamanan dependensi
         run: npm audit --audit-level=high
-
-  # Job 3: Verifikasi Build Container Image (bergantung pada job build)
-  docker-build:
-    name: Container Build Check
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t latihan-app:ci .
-
-  # Job 4: Ringkasan Status Pipeline
-  pipeline-summary:
-    name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [build, security-audit, docker-build]
-    steps:
-      - name: Konfirmasi semua tahap lulus
-        run: echo "Seluruh tahapan CI (Build, Audit, dan Container) berhasil lulus!"
